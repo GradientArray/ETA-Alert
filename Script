@@ -1,0 +1,68 @@
+// Main function to check ETA and send notification
+function sendTelegramNotification() {
+  var token = '7473996383:AAG_nM2yi5NhanzmypK4hWpkAZyc2ddI3Fw'; // Replace with your Telegram bot token
+  var chatId = '6729494222'; // Replace with your chat ID
+
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('test');
+  var data = sheet.getDataRange().getValues();
+
+  var today = new Date();
+  today.setHours(0, 0, 0, 0); // Ignore the time part
+
+  for (var i = 1; i < data.length; i++) {
+    var eta = new Date(data[i][0]);
+    eta.setHours(0, 0, 0, 0); // Ignore the time part  
+    
+    if (eta.getTime() === today.getTime()) {
+      var message = 'ETA Alert: '+'\n'+
+                    'Vehicle No: ' + data[i][1] +',\n'+
+                    'Type of Vehicle: ' + data[i][2] + ',\n'+
+                    'Vehicle Origin: ' + data[i][3] +',\n'+
+                    'Driver Name: ' + data[i][4] +',\n' + 
+                    'Driver Phone: ' + data[i][5];
+                    
+      sendMessage(token, chatId, message);
+    }
+  }
+}
+      
+// Function to send a message to Telegram
+function sendMessage(token, chatId, message) {
+  var url = 'https://api.telegram.org/bot' + token + '/sendMessage';
+  var payload = {
+    'chat_id': chatId,
+    'text': message
+  };
+  
+  var options = {
+    'method': 'post',
+    'contentType': 'application/json',
+    'payload': JSON.stringify(payload),
+    'muteHttpExceptions': true // Use this option to see the full response in case of errors
+  };
+  
+  var response = UrlFetchApp.fetch(url, options);
+  Logger.log(response.getContentText()); // Log the response for debugging
+}
+
+// Function to add a custom menu to Google Sheets
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Custom Menu')
+    .addItem('Send ETA Notification', 'sendTelegramNotification')
+    .addToUi();
+}
+
+// Function to check ETA daily
+function checkETADaily() {
+  sendTelegramNotification();
+}
+
+// Function to create a time-driven trigger
+function createTrigger() {
+  ScriptApp.newTrigger('checkETADaily')
+    .timeBased()
+    .everyDays(1)
+    .atHour(9) // Adjust the hour as needed
+    .create();
+}
